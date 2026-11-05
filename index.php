@@ -84,42 +84,76 @@ try {
     fail('Invalid timezone.');
 }
 
-$currentYear = (int) (new DateTime('now', $timezone))->format('Y');
+$now = new DateTime('now', $timezone);
+$currentYear = (int) $now->format('Y');
+
+$yearGiven = getParam(['year', 'jaar']) !== null && getParam(['year', 'jaar']) !== '';
 
 $day = getIntParam(['day', 'dag'], 0);
 $month = getIntParam(['month', 'maand'], 0);
 $year = getIntParam(['year', 'jaar'], $currentYear);
 $hour = getIntParam(['hour', 'uur'], 10);
 $minute = getIntParam(['minute', 'minuut'], 0);
+// Hours the countdown stays at zero after the target has passed, before it
+// moves on to next year's date. Only used when no year is given.
+$holdHours = getIntParam(['hold'], 24);
 
 if (
     $day === null || $month === null || $year === null || $hour === null || $minute === null ||
+    $holdHours === null ||
     $day < 1 || $day > 31 ||
     $month < 1 || $month > 12 ||
     $year < 1970 || $year > 9999 ||
     $hour < 0 || $hour > 23 ||
-    $minute < 0 || $minute > 59
+    $minute < 0 || $minute > 59 ||
+    $holdHours < 0 || $holdHours > 8760
 ) {
     fail('Invalid date or time parameters.');
 }
 
-$dateString = sprintf(
-    '%04d-%02d-%02d %02d:%02d:00',
-    $year,
-    $month,
-    $day,
-    $hour,
-    $minute
-);
+/**
+ * Build the target moment for a given year, or null when that date does not
+ * exist in that year (e.g. 29 February in a non-leap year).
+ */
+function buildTarget(int $year, int $month, int $day, int $hour, int $minute, DateTimeZone $timezone): ?DateTime
+{
+    $dateString = sprintf('%04d-%02d-%02d %02d:%02d:00', $year, $month, $day, $hour, $minute);
+    $target = DateTime::createFromFormat('!Y-m-d H:i:s', $dateString, $timezone);
 
-$targetDateTime = DateTime::createFromFormat('!Y-m-d H:i:s', $dateString, $timezone);
+    if (
+        !$target ||
+        (int) $target->format('n') !== $month ||
+        (int) $target->format('j') !== $day ||
+        (int) $target->format('Y') !== $year
+    ) {
+        return null;
+    }
 
-if (
-    !$targetDateTime ||
-    (int) $targetDateTime->format('n') !== $month ||
-    (int) $targetDateTime->format('j') !== $day ||
-    (int) $targetDateTime->format('Y') !== $year
-) {
+    return $target;
+}
+
+$targetDateTime = null;
+
+if ($yearGiven) {
+    $targetDateTime = buildTarget($year, $month, $day, $hour, $minute, $timezone);
+} else {
+    // No year given: use the next occurrence of this date. A target that has
+    // just passed is kept for the hold period, so the countdown shows zeros
+    // for a while instead of jumping straight to ~365 days.
+    // Starting one year back covers e.g. a 31 December target viewed on 1 January.
+    $holdSeconds = $holdHours * 3600;
+
+    for ($candidateYear = $currentYear - 1; $candidateYear <= $currentYear + 8; $candidateYear++) {
+        $candidate = buildTarget($candidateYear, $month, $day, $hour, $minute, $timezone);
+
+        if ($candidate && $candidate->getTimestamp() + $holdSeconds > $now->getTimestamp()) {
+            $targetDateTime = $candidate;
+            break;
+        }
+    }
+}
+
+if (!$targetDateTime) {
     fail('Invalid calendar date.');
 }
 

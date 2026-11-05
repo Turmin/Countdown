@@ -14,10 +14,17 @@ index.php?day=25&month=12&year=2026&hour=18&minute=30
 |-----------|----------|--------------------|----------------------------------------------|
 | `day`     | yes      | –                  | Day of the month (1–31)                      |
 | `month`   | yes      | –                  | Month (1–12)                                 |
-| `year`    | no       | current year       | Year (1970 or later)                         |
+| `year`    | no       | next occurrence    | Year (1970 or later)                         |
 | `hour`    | no       | `10`               | Hour (0–23)                                  |
 | `minute`  | no       | `0`                | Minute (0–59)                                |
 | `tz`      | no       | `Europe/Amsterdam` | Timezone of the target time (e.g. `UTC`, `America/New_York`) |
+| `hold`    | no       | `24`               | Hours to keep showing zeros after the target has passed (0–8760, only without `year`) |
+
+### Recurring dates
+
+When `year` is omitted, the countdown targets the next occurrence of the date, so `?day=2&month=3` counts down to 2 March of next year once this year's date has passed. To avoid jumping straight to ~365 days the moment the countdown ends, it keeps showing zeros for `hold` hours (default 24) before moving on to next year. A 29 February target without a year counts down to the next leap year.
+
+When `year` is given, that exact date is used and the countdown stays at zero once it has passed.
 
 The legacy Dutch parameter names (`dag`, `maand`, `jaar`, `uur`, `minuut`) are still accepted, so existing embed URLs keep working.
 
