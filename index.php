@@ -165,6 +165,12 @@ $pageBackground = getCssColorParam(['bg', 'background'], 'transparent');
 $boxBackground = getCssColorParam(['boxbg', 'boxbackground'], '#000000dd');
 $textColor = getCssColorParam(['text', 'textcolor', 'numbercolor'], '#eeeeee');
 $labelColor = getCssColorParam(['label', 'labelcolor'], '#ffffff99');
+
+// Optional message shown instead of the boxes once the countdown has ended.
+const MESSAGE_MAX_LENGTH = 100;
+$message = (string) getParam(['message', 'done']);
+$message = preg_replace('/\s+/u', ' ', $message) ?? '';
+$message = mb_substr(trim($message), 0, MESSAGE_MAX_LENGTH, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -237,6 +243,25 @@ $labelColor = getCssColorParam(['label', 'labelcolor'], '#ffffff99');
             letter-spacing: clamp(0.02em, 0.4vw, 0.1em);
             text-transform: uppercase;
             white-space: nowrap;
+        }
+
+        .countdown-message {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: clamp(0.7rem, 3vw, 1.3rem) clamp(0.6rem, 3vw, 1.2rem);
+            text-align: center;
+            border: 1px solid rgba(0, 0, 0, 0.35);
+            border-radius: clamp(8px, 2vw, 14px);
+            background: var(--box-bg);
+            color: var(--text-color);
+            font-size: clamp(1.1rem, 5.5vw, 2.4rem);
+            font-weight: 800;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+        }
+
+        [hidden] {
+            display: none !important;
         }
 
         .tick {
@@ -328,6 +353,8 @@ $labelColor = getCssColorParam(['label', 'labelcolor'], '#ffffff99');
         </div>
     </div>
 
+    <div class="countdown-message" id="message" role="status" hidden><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
+
     <script>
         const targetDate = <?php echo json_encode($targetTimestamp); ?>;
 
@@ -336,6 +363,8 @@ $labelColor = getCssColorParam(['label', 'labelcolor'], '#ffffff99');
         const minutesEl = document.getElementById("minutes");
         const secondsEl = document.getElementById("seconds");
         const secondsBox = document.getElementById("secondsBox");
+        const countdownEl = document.getElementById("countdown");
+        const messageEl = document.getElementById("message");
 
         const SECOND = 1000;
         const MINUTE = SECOND * 60;
@@ -353,11 +382,33 @@ $labelColor = getCssColorParam(['label', 'labelcolor'], '#ffffff99');
             secondsEl.textContent = pad(seconds);
         }
 
+        // Swap the boxes for the message, shrinking the text when needed so it
+        // fits in the same height and the embedding iframe does not change size.
+        function showMessage() {
+            const maxHeight = countdownEl.offsetHeight;
+
+            countdownEl.hidden = true;
+            messageEl.hidden = false;
+
+            let fontSize = parseFloat(getComputedStyle(messageEl).fontSize);
+
+            while (maxHeight > 0 && messageEl.offsetHeight > maxHeight && fontSize > 10) {
+                fontSize -= 1;
+                messageEl.style.fontSize = fontSize + "px";
+            }
+        }
+
         function updateCountdown() {
             const distance = targetDate - Date.now();
 
             if (distance <= 0) {
                 render(0, 0, 0, 0);
+
+                // Show the custom message, if one was given, instead of the zeros.
+                if (messageEl.textContent !== "" && messageEl.hidden) {
+                    showMessage();
+                }
+
                 return;
             }
 

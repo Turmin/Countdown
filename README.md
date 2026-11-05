@@ -30,6 +30,18 @@ The legacy Dutch parameter names (`dag`, `maand`, `jaar`, `uur`, `minuut`) are s
 
 The target time is interpreted in the given timezone and converted to a fixed moment, so every visitor counts down to the same instant regardless of the timezone of their own device.
 
+### Message after the countdown ends
+
+| Parameter            | Default | Description |
+|----------------------|---------|-------------|
+| `message` / `done`   | –       | Text shown instead of the boxes once the countdown has ended (max. 100 characters, URL-encoded) |
+
+Without `message` the countdown simply shows zeros. The message uses the same colors as the numbers (`boxbg` and `text`) and also appears on a page that is already open when the time runs out.
+
+```
+index.php?day=2&month=3&message=Happy%20birthday!
+```
+
 ### Colors
 
 Colors are given as hex values **without** `#` (3, 4, 6 or 8 digits), or as `transparent`.
