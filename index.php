@@ -264,7 +264,8 @@ $message = mb_substr(trim($message), 0, MESSAGE_MAX_LENGTH, 'UTF-8');
             display: none !important;
         }
 
-        .tick {
+        /* Only the number pulses, so the box (and its border) never grows past the page edges. */
+        .tick span {
             animation: tickPulse 0.45s ease;
         }
 
@@ -283,7 +284,7 @@ $message = mb_substr(trim($message), 0, MESSAGE_MAX_LENGTH, 'UTF-8');
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .tick {
+            .tick span {
                 animation: none;
             }
         }
